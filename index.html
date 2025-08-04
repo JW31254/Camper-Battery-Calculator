@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Van Power Calculator Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+        }
+        .card {
+            background-color: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .btn {
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn-primary {
+            background-color: #4f46e5;
+            color: white;
+            box-shadow: 0 4px 14px 0 rgb(79 70 229 / 39%);
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 500px;
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+        .animate-fade-in-out {
+            animation: fadeInOut 3s ease-in-out forwards;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl sm:text-5xl font-bold text-gray-900">Van Power Calculator Pro</h1>
+            <p class="mt-3 text-lg text-gray-600">A comprehensive tool to plan your off-grid power needs.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column: Setup -->
+            <div class="lg:col-span-1 space-y-8">
+                <div class="card p-6">
+                    <h2 class="text-2xl font-semibold mb-4 flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4Z"/><path d="M3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V12"/><line x1="12" x2="12" y1="16" y2="16"/></svg>1. Power Station</h2>
+                    <label for="station-capacity" class="font-medium">Capacity (Wh)</label>
+                    <input type="number" id="station-capacity" placeholder="e.g., 1000" class="w-full mt-2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                </div>
+                
+                <div class="card p-6">
+                    <h2 class="text-2xl font-semibold mb-4 flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/><path d="m12 12 2.5 2.5"/><path d="M12 12V7"/></svg>2. Daily Charging</h2>
+                    <div class="mb-4">
+                        <h3 class="text-lg font-medium mb-2">Split Charging</h3>
+                        <input type="number" id="driving-hours" placeholder="Hours driving/day" class="w-full p-3 mb-2 border border-gray-300 rounded-lg">
+                        <input type="number" id="alternator-output" placeholder="Alternator power (W)" class="w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium mb-2">Solar Charging</h3>
+                        <input type="number" id="solar-wattage" placeholder="Solar panel wattage (W)" class="w-full p-3 mb-2 border border-gray-300 rounded-lg">
+                        <select id="season" class="w-full p-3 border border-gray-300 rounded-lg bg-white">
+                            <option value="summer">UK Summer</option>
+                            <option value="autumn">UK Autumn</option>
+                            <option value="spring">UK Spring</option>
+                            <option value="winter">UK Winter</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle Column: Appliances -->
+            <div class="lg:col-span-1 space-y-8">
+                <div class="card p-6">
+                    <h2 class="text-2xl font-semibold mb-4 flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M8.5 12.5a5 5 0 1 0 7 0 5 5 0 1 0-7 0Z"/><path d="M12 2v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M22 12h-2"/><path d="m2 12H0"/><path d="M4.93 19.07l1.41-1.41"/><path d="M17.66 6.34l1.41-1.41"/></svg>3. Daily Appliances</h2>
+                    <div id="appliances-list" class="space-y-3 mb-4 max-h-[400px] overflow-y-auto pr-2"></div>
+                    <div class="flex gap-2">
+                        <button id="open-library-btn" class="btn btn-secondary w-full justify-center py-3">Add from Library</button>
+                    </div>
+                    <div class="mt-4">
+                        <p class="text-center text-gray-500 my-2">-- OR --</p>
+                        <input type="text" id="new-appliance-name" placeholder="Custom Appliance" class="w-full p-3 mb-2 border border-gray-300 rounded-lg">
+                        <div class="flex gap-2">
+                            <input type="number" id="new-appliance-watts" placeholder="Watts (W)" class="w-full p-3 border border-gray-300 rounded-lg">
+                            <button id="add-appliance-btn" class="btn btn-primary px-4 py-3">Add</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Results -->
+            <div class="lg:col-span-1 space-y-8">
+                <div class="card p-6">
+                    <h2 class="text-2xl font-semibold mb-4 flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20V16"/></svg>4. Results</h2>
+                    <div class="text-center mb-6">
+                        <button id="calculate-btn" class="btn btn-primary w-full justify-center py-4 text-lg">Calculate Now</button>
+                    </div>
+                    <div id="results-container" class="hidden">
+                        <div id="results-output" class="text-center text-2xl font-bold text-indigo-600 bg-indigo-50 p-6 rounded-lg mb-6"></div>
+                        <div class="space-y-8">
+                            <div>
+                                <h4 class="font-semibold text-lg mb-2 text-center">Battery Forecast (%)</h4>
+                                <canvas id="forecastChart"></canvas>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-lg mb-2 text-center">Daily Power Budget (Wh)</h4>
+                                <canvas id="comparisonChart"></canvas>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-lg mb-2 text-center">Consumption Breakdown (Wh)</h4>
+                                <canvas id="consumptionChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="mt-6 flex justify-center">
+                            <button id="clear-btn" class="btn btn-secondary py-2 px-6">Clear All</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Appliance Library Modal -->
+    <div id="library-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold mb-4">Appliance Library</h2>
+            <div id="library-list" class="space-y-2 max-h-80 overflow-y-auto"></div>
+            <button id="close-library-btn" class="btn btn-secondary mt-6 w-full justify-center py-3">Close</button>
+        </div>
+    </div>
+
+    <!-- Message Box -->
+    <div id="message-box" class="fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg text-sm hidden">
+        <p id="message-text"></p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- Element References ---
+            const stationCapacityInput = document.getElementById('station-capacity');
+            const drivingHoursInput = document.getElementById('driving-hours');
+            const alternatorOutputInput = document.getElementById('alternator-output');
+            const solarWattageInput = document.getElementById('solar-wattage');
+            const seasonSelect = document.getElementById('season');
+            const appliancesList = document.getElementById('appliances-list');
+            const newApplianceNameInput = document.getElementById('new-appliance-name');
+            const newApplianceWattsInput = document.getElementById('new-appliance-watts');
+            const addApplianceBtn = document.getElementById('add-appliance-btn');
+            const calculateBtn = document.getElementById('calculate-btn');
+            const resultsContainer = document.getElementById('results-container');
+            const resultsOutput = document.getElementById('results-output');
+            const clearBtn = document.getElementById('clear-btn');
+            const messageBox = document.getElementById('message-box');
+            const messageText = document.getElementById('message-text');
+            const openLibraryBtn = document.getElementById('open-library-btn');
+            const closeLibraryBtn = document.getElementById('close-library-btn');
+            const libraryModal = document.getElementById('library-modal');
+            const libraryList = document.getElementById('library-list');
+
+            // --- Chart Instances ---
+            let consumptionChart = null;
+            let comparisonChart = null;
+            let forecastChart = null;
+
+            // --- Data & Constants ---
+            let applianceIdCounter = 0;
+            const applianceLibrary = [
+                { name: 'Dometic CRX50 Fridge', watts: 15, note: 'Avg. over 24h, 1.2Ah/h' },
+                { name: 'Dometic CFX3 45 Cooler', watts: 9, note: 'Avg. over 24h, 0.7Ah/h' },
+                { name: 'Webasto Heater (2kW)', watts: 15, note: 'Avg. running power' },
+                { name: 'Maxxair Fan (Low)', watts: 5 },
+                { name: 'Maxxair Fan (High)', watts: 35 },
+                { name: 'Air Fryer (Compact)', watts: 1500 },
+                { name: 'Induction Hob (Single)', watts: 1800 },
+                { name: 'Microwave (700W)', watts: 700 },
+                { name: 'Shurflo Water Pump', watts: 60, note: 'When running' },
+                { name: 'Starlink', watts: 50, note: 'Avg. usage' },
+                { name: 'Laptop Charging', watts: 65 },
+                { name: '12V TV (22-inch)', watts: 25 },
+                { name: 'Phone Charging', watts: 18 },
+                { name: 'LED Puck Lights (x4)', watts: 12 },
+            ];
+            const ukPeakSunHours = { summer: 5, autumn: 3, spring: 3.5, winter: 1.5 };
+
+            // --- Functions ---
+            function showMessage(message) {
+                messageText.textContent = message;
+                messageBox.classList.remove('hidden');
+                messageBox.classList.add('animate-fade-in-out');
+                setTimeout(() => {
+                    messageBox.classList.add('hidden');
+                    messageBox.classList.remove('animate-fade-in-out');
+                }, 3000);
+            }
+
+            function createApplianceElement(name, watts) {
+                const applianceId = `appliance-${applianceIdCounter++}`;
+                const card = document.createElement('div');
+                card.className = 'p-3 border border-gray-200 rounded-lg flex items-center justify-between gap-2 bg-gray-50';
+                card.id = applianceId;
+                card.innerHTML = `
+                    <div class="flex-grow">
+                        <p class="font-semibold">${name}</p>
+                        <p class="text-xs text-gray-500">${watts} Watts</p>
+                    </div>
+                    <input type="number" data-watts="${watts}" class="appliance-hours w-20 p-2 border border-gray-300 rounded-lg text-center" placeholder="hours">
+                    <button class="remove-appliance-btn text-red-500 hover:text-red-700 p-1" data-remove-id="${applianceId}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    </button>
+                `;
+                appliancesList.appendChild(card);
+            }
+
+            function addAppliance() {
+                const name = newApplianceNameInput.value.trim();
+                const watts = parseFloat(newApplianceWattsInput.value);
+                if (!name || isNaN(watts) || watts <= 0) {
+                    showMessage('Please enter a valid appliance name and positive wattage.');
+                    return;
+                }
+                createApplianceElement(name, watts);
+                newApplianceNameInput.value = '';
+                newApplianceWattsInput.value = '';
+            }
+            
+            function calculate() {
+                const stationCapacity = parseFloat(stationCapacityInput.value);
+                if (isNaN(stationCapacity) || stationCapacity <= 0) {
+                    showMessage('Please enter a valid power station capacity.');
+                    return;
+                }
+
+                let totalConsumptionWh = 0;
+                let consumptionBreakdown = [];
+                document.querySelectorAll('.appliance-hours').forEach(input => {
+                    const hours = parseFloat(input.value) || 0;
+                    if (hours > 0) {
+                        const watts = parseFloat(input.dataset.watts);
+                        const wh = watts * hours;
+                        totalConsumptionWh += wh;
+                        const name = input.closest('div').querySelector('.font-semibold').textContent;
+                        consumptionBreakdown.push({ name, wh });
+                    }
+                });
+
+                const drivingHours = parseFloat(drivingHoursInput.value) || 0;
+                const alternatorPower = parseFloat(alternatorOutputInput.value) || 0;
+                const solarWattage = parseFloat(solarWattageInput.value) || 0;
+                const sunHours = ukPeakSunHours[seasonSelect.value];
+                const totalGeneratedWh = (drivingHours * alternatorPower) + (solarWattage * sunHours);
+
+                const netDailyWh = totalConsumptionWh - totalGeneratedWh;
+
+                if (netDailyWh > 0) {
+                    const days = stationCapacity / netDailyWh;
+                    resultsOutput.innerHTML = `Battery lasts: <br> <span class="text-4xl">${Math.floor(days)}</span> days & <span class="text-4xl">${Math.floor((days % 1) * 24)}</span> hours.`;
+                } else {
+                    resultsOutput.innerHTML = `<span class="text-green-600">System Sustainable!</span><br>Daily Surplus: <span class="text-3xl">${Math.abs(netDailyWh).toFixed(1)} Wh</span>`;
+                }
+                
+                updateCharts(stationCapacity, netDailyWh, totalConsumptionWh, totalGeneratedWh, consumptionBreakdown);
+                resultsContainer.classList.remove('hidden');
+                resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            function updateCharts(capacity, net, consumption, generation, breakdown) {
+                if (consumptionChart) consumptionChart.destroy();
+                if (comparisonChart) comparisonChart.destroy();
+                if (forecastChart) forecastChart.destroy();
+                
+                // --- Forecast Chart ---
+                const forecastLabels = ['Now'];
+                const forecastData = [100];
+                let currentWh = capacity;
+                
+                if (net > 0) { // Only forecast if there's a deficit
+                    for (let i = 1; i <= 7; i++) {
+                        currentWh -= net;
+                        if (currentWh < 0) {
+                            forecastLabels.push(`Day ${i}`);
+                            forecastData.push(0);
+                            break;
+                        }
+                        forecastLabels.push(`Day ${i}`);
+                        forecastData.push((currentWh / capacity) * 100);
+                    }
+                } else { // If sustainable, show a flat line
+                     for (let i = 1; i <= 7; i++) {
+                        forecastLabels.push(`Day ${i}`);
+                        forecastData.push(100);
+                     }
+                }
+
+                const forecastCtx = document.getElementById('forecastChart').getContext('2d');
+                forecastChart = new Chart(forecastCtx, {
+                    type: 'line',
+                    data: {
+                        labels: forecastLabels,
+                        datasets: [{
+                            label: 'Battery Charge (%)',
+                            data: forecastData,
+                            fill: true,
+                            borderColor: '#4f46e5',
+                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                            tension: 0.1
+                        }]
+                    },
+                    options: { scales: { y: { beginAtZero: true, max: 100 } } }
+                });
+
+
+                // --- Comparison Chart ---
+                const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
+                comparisonChart = new Chart(comparisonCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Daily Watt-Hours'],
+                        datasets: [
+                            { label: 'Consumption', data: [consumption], backgroundColor: '#ef4444', borderRadius: 5 },
+                            { label: 'Generation', data: [generation], backgroundColor: '#22c55e', borderRadius: 5 }
+                        ]
+                    },
+                    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                });
+
+                // --- Consumption Breakdown Chart ---
+                const consumptionCtx = document.getElementById('consumptionChart').getContext('2d');
+                consumptionChart = new Chart(consumptionCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: breakdown.map(item => item.name),
+                        datasets: [{
+                            label: 'Watt-hours consumed',
+                            data: breakdown.map(item => item.wh),
+                            backgroundColor: '#4f46e5',
+                            borderColor: '#fff',
+                            borderWidth: 2,
+                            borderRadius: 5
+                        }]
+                    },
+                    options: { 
+                        indexAxis: 'y',
+                        responsive: true, 
+                        plugins: { legend: { display: false } } 
+                    }
+                });
+            }
+
+            function clearAll() {
+                [stationCapacityInput, drivingHoursInput, alternatorOutputInput, solarWattageInput, newApplianceNameInput, newApplianceWattsInput].forEach(i => i.value = '');
+                seasonSelect.value = 'summer';
+                appliancesList.innerHTML = '';
+                resultsContainer.classList.add('hidden');
+                if (consumptionChart) consumptionChart.destroy();
+                if (comparisonChart) comparisonChart.destroy();
+                if (forecastChart) forecastChart.destroy();
+            }
+
+            function populateLibrary() {
+                libraryList.innerHTML = '';
+                applianceLibrary.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'p-3 border rounded-lg flex justify-between items-center cursor-pointer hover:bg-gray-100';
+                    el.innerHTML = `
+                        <div>
+                            <p class="font-semibold">${item.name}</p>
+                            <p class="text-xs text-gray-500">${item.note ? item.note : `${item.watts}W`}</p>
+                        </div>
+                        <button class="btn btn-primary px-3 py-1 text-sm">Add</button>
+                    `;
+                    el.querySelector('button').addEventListener('click', () => {
+                        createApplianceElement(item.name, item.watts);
+                        libraryModal.classList.remove('active');
+                    });
+                    libraryList.appendChild(el);
+                });
+            }
+
+            // --- Event Listeners ---
+            addApplianceBtn.addEventListener('click', addAppliance);
+            calculateBtn.addEventListener('click', calculate);
+            clearBtn.addEventListener('click', clearAll);
+            openLibraryBtn.addEventListener('click', () => libraryModal.classList.add('active'));
+            closeLibraryBtn.addEventListener('click', () => libraryModal.classList.remove('active'));
+            libraryModal.addEventListener('click', (e) => {
+                if (e.target === libraryModal) libraryModal.classList.remove('active');
+            });
+            appliancesList.addEventListener('click', function(e) {
+                const removeBtn = e.target.closest('.remove-appliance-btn');
+                if (removeBtn) {
+                    document.getElementById(removeBtn.dataset.removeId)?.remove();
+                }
+            });
+
+            // --- Initial Load ---
+            populateLibrary();
+        });
+    </script>
+</body>
+</html>
